@@ -1,6 +1,14 @@
 from flask import Flask, jsonify, request
 from flask_restful import Resource, Api
 
+resources = {
+    "floorMaps": {
+        "CE": ['https://github.com/HariSK20/CETGo_Data/raw/main/CE0.png', 'https://github.com/HariSK20/CETGo_Data/raw/main/CE1.png', ], 
+        "CSE": ['https://github.com/HariSK20/CETGo_Data/raw/main/CS0.svg', 'https://raw.githubusercontent.com/HariSK20/CETGo_Data/main/cs1.svg', 'https://github.com/HariSK20/CETGo_Data/raw/main/cs2.svg'],
+        "MCA": ['none exists!']
+    }
+}
+
 # creating the flask app
 app = Flask(__name__)
 # creating an API object
