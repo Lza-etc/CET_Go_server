@@ -20,6 +20,16 @@ api = Api(app)
 class Welcome(Resource):
     def get(self):
         return(jsonify({'message': 'HELLO!!'}))
+class FloorMap(Resource):
+    # corresponds to the GET request.
+    # this function is called whenever there
+    # is a GET request for this resource
+    def get(self, code):
+        return jsonify({'src': resources['floorMaps'][code[:-1].upper()][int(code[-1])]})
+    # Corresponds to POST request
+    def post(self):
+        data = request.get_json()     # status code
+        return jsonify({'data': data}), 201
 
 # another resource to calculate the square of a number
 # class Square(Resource):
@@ -28,7 +38,7 @@ class Welcome(Resource):
   
 # adding the defined resources along with their corresponding urls
 api.add_resource(Welcome, '/')
-  
+api.add_resource(FloorMap, '/floors/<string:code>')
   
 # driver function
 if __name__ == '__main__':
