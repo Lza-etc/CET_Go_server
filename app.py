@@ -1,7 +1,9 @@
 from flask import Flask, jsonify, request, send_file
 from flask_restful import Resource, Api
-from PIL import Image
+# from PIL import Image
 
+# requires neo4j module to run query directly from this script
+from neo4j import GraphDatabase
 
 resources = {
     "floorMaps": {
@@ -22,6 +24,8 @@ api = Api(app)
 class Welcome(Resource):
     def get(self):
         return(jsonify({'message': 'HELLO!!'}))
+
+
 class FloorMap(Resource):
     # corresponds to the GET request.
     # this function is called whenever there
@@ -33,15 +37,28 @@ class FloorMap(Resource):
         data = request.get_json()     # status code
         return jsonify({'data': data}), 201
 
+
 class FloorMapFile(Resource):
     def get(self, code):
         path = '../CETGo_Data/'+ code + '.svg'
         return send_file(path, mimetype='image/svg+xml')
-# another resource to calculate the square of a number
-# class Square(Resource):
-#     def get(self, num):
-#         return jsonify({'square': num**2})
-  
+
+
+class Graph(Resource):
+    def get(self):
+        data = request.get_json()
+        if(data == null):
+            return({'message': 'No data found'})
+        graphDB_Driver  = GraphDatabase.driver(uri_to_server, auth=(usr, pwd))
+        with graphDB_Driver.session() as graphDB_Session:
+            # checking if the nodes where returned correctly
+            query = "match (p1:room {id: '{0}'}), (p2:room {id: '{1}'}), path = shortestPath((p1)-[*..15]-(p2)) return path".format(data['src'], data['dest'])
+            res = graphDB_Session.run(query)
+            print(res)
+        graphDB_Driver.close()
+        return({'res': 'hello'})
+
+
 # adding the defined resources along with their corresponding urls
 api.add_resource(Welcome, '/')
 api.add_resource(FloorMap, '/floors/<string:code>')
