@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request, send_file
 from flask_restful import Resource, Api
+from dotenv import dotenv_values
 # from PIL import Image
-
 # requires neo4j module to run query directly from this script
 from neo4j import GraphDatabase
 
@@ -13,9 +13,11 @@ resources = {
     }
 }
 
-uri_to_server=""
-usr = ""
-pwd = ""
+config = dict(dotenv_values("cred.env"))
+# print(config)
+uri_to_server=config["NEO4J_URI"]
+usr = config["NEO4J_USERNAME"]
+pwd = config["NEO4J_PASSWORD"]
 
 # creating the flask app
 app = Flask(__name__)
