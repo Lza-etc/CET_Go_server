@@ -1,10 +1,12 @@
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 from flask_restful import Resource, Api
+from PIL import Image
+
 
 resources = {
     "floorMaps": {
         "CE": ['https://github.com/HariSK20/CETGo_Data/raw/main/CE0.png', 'https://github.com/HariSK20/CETGo_Data/raw/main/CE1.png', ], 
-        "CSE": ['https://github.com/HariSK20/CETGo_Data/raw/main/CS0.svg', 'https://raw.githubusercontent.com/HariSK20/CETGo_Data/main/cs1.svg', 'https://github.com/HariSK20/CETGo_Data/raw/main/cs2.svg'],
+        "CSE": ['https://github.com/HariSK20/CETGo_Data/raw/main/cs0.svg', 'https://raw.githubusercontent.com/HariSK20/CETGo_Data/main/cs1.svg', 'https://github.com/HariSK20/CETGo_Data/raw/main/cs2.svg'],
         "MCA": ['none exists!']
     }
 }
@@ -31,6 +33,10 @@ class FloorMap(Resource):
         data = request.get_json()     # status code
         return jsonify({'data': data}), 201
 
+class FloorMapFile(Resource):
+    def get(self, code):
+        path = '../CETGo_Data/'+ code + '.svg'
+        return send_file(path, mimetype='image/svg+xml')
 # another resource to calculate the square of a number
 # class Square(Resource):
 #     def get(self, num):
@@ -39,7 +45,8 @@ class FloorMap(Resource):
 # adding the defined resources along with their corresponding urls
 api.add_resource(Welcome, '/')
 api.add_resource(FloorMap, '/floors/<string:code>')
-  
+api.add_resource(FloorMapFile, '/floorplan/<string:code>')
+
 # driver function
 if __name__ == '__main__':
     app.run(debug = True)
