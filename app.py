@@ -13,6 +13,10 @@ resources = {
     }
 }
 
+uri_to_server=""
+usr = ""
+pwd = ""
+
 # creating the flask app
 app = Flask(__name__)
 # creating an API object
@@ -46,9 +50,10 @@ class FloorMapFile(Resource):
 
 class Graph(Resource):
     def get(self):
-        data = request.get_json()
-        if(data == null):
-            return({'message': 'No data found'})
+        data = request.args.to_dict()
+        print(data)
+        if(data == None):
+            return(jsonify({'message': 'No data found'}))
         graphDB_Driver  = GraphDatabase.driver(uri_to_server, auth=(usr, pwd))
         with graphDB_Driver.session() as graphDB_Session:
             # checking if the nodes where returned correctly
@@ -56,13 +61,14 @@ class Graph(Resource):
             res = graphDB_Session.run(query)
             print(res)
         graphDB_Driver.close()
-        return({'res': 'hello'})
+        return(jsonify({'res': 'hello'}))
 
 
 # adding the defined resources along with their corresponding urls
 api.add_resource(Welcome, '/')
 api.add_resource(FloorMap, '/floors/<string:code>')
 api.add_resource(FloorMapFile, '/floorplan/<string:code>')
+api.add_resource(Graph, '/shortestpath')
 
 # driver function
 if __name__ == '__main__':
