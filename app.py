@@ -4,6 +4,7 @@ from dotenv import dotenv_values
 # from PIL import Image
 # requires neo4j module to run query directly from this script
 from neo4j import GraphDatabase
+import psycopg2 as psql
 
 resources = {
     "floorMaps": {
@@ -13,16 +14,27 @@ resources = {
     }
 }
 
+# get credentials
 config = dict(dotenv_values("cred.env"))
 # print(config)
-uri_to_server=config["NEO4J_URI"]
-usr = config["NEO4J_USERNAME"]
-pwd = config["NEO4J_PASSWORD"]
+# graph db
+neo4j_uri_to_server = config["NEO4J_URI"]
+neo4j_usr = config["NEO4J_USERNAME"]
+neo4j_pwd = config["NEO4J_PASSWORD"]
+# psql 
+psql_usr = config["PSQL_USER"]
+psql_pass = config["PSQL_PASSWORD"]
+psql_db = config["PSQL_DATABASE"]
+psql_port = config["PSQL_PORT"]
+psql_host = config["PSQL_HOST"]
+
 
 # creating the flask app
 app = Flask(__name__)
 # creating an API object
 api = Api(app)
+
+conn = psql.connect(dbname=psql_db, user=psql_usr, password=psql_pass, host=psql_host, port=psql_port)
 # making a class for a particular resource
 # the get, post methods correspond to get and post requests
 # they are automatically mapped by flask_restful.
@@ -33,11 +45,16 @@ class Welcome(Resource):
 
 
 class FloorMap(Resource):
-    # corresponds to the GET request.
-    # this function is called whenever there
-    # is a GET request for this resource
     def get(self, code):
-        return jsonify({'src': resources['floorMaps'][code[:-1].upper()][int(code[-1])]})
+        global conn
+        res = {'src': resources['floorMaps'][code[:-1].upper()][int(code[-1])]}
+        cur = conn.cursor()
+        res['rooms'] = []
+        cur.execute("SELECT id,val FROM room_details where z='{}'".format(code[-1]))
+        for i in cur.fetchall():
+            res['rooms'].append({'ID': i[0], 'Description': i[1]})
+        cur.close()
+        return jsonify(res)
     # Corresponds to POST request
     def post(self):
         data = request.get_json()     # status code
@@ -56,7 +73,7 @@ class Graph(Resource):
         print(data)
         if(data == None):
             return(jsonify({'message': 'No data found'}))
-        graphDB_Driver  = GraphDatabase.driver(uri_to_server, auth=(usr, pwd))
+        graphDB_Driver  = GraphDatabase.driver(neo4j_uri_to_server, auth=(neo4j_usr, neo4j_pwd))
         with graphDB_Driver.session() as graphDB_Session:
             # checking if the nodes where returned correctly
             query = "match (p1:room {id: '{0}'}), (p2:room {id: '{1}'}), path = shortestPath((p1)-[*..15]-(p2)) return path".format(data['src'], data['dest'])
@@ -75,3 +92,4 @@ api.add_resource(Graph, '/shortestpath')
 # driver function
 if __name__ == '__main__':
     app.run(debug = True)
+    conn.close()
