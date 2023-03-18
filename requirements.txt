@@ -4,3 +4,5 @@ Flask-RESTful==0.3.9
 neo4j==4.4.5
 python-dotenv==1.0.0
 psycopg2-binary==2.9.5
+Flask-Login==0.6.2
+Flask-SQLAlchemy==3.0.3

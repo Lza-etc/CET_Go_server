@@ -5,6 +5,7 @@ from dotenv import dotenv_values
 # requires neo4j module to run query directly from this script
 from neo4j import GraphDatabase
 import psycopg2 as psql
+from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 
 resources = {
     "floorMaps": {
@@ -28,23 +29,28 @@ psql_db = config["PSQL_DATABASE"]
 psql_port = config["PSQL_PORT"]
 psql_host = config["PSQL_HOST"]
 
-
+# 
+login_manager = LoginManager()
 # creating the flask app
 app = Flask(__name__)
 # creating an API object
 api = Api(app)
+login_manager.init_app(app)
 
 conn = psql.connect(dbname=psql_db, user=psql_usr, password=psql_pass, host=psql_host, port=psql_port)
-# making a class for a particular resource
-# the get, post methods correspond to get and post requests
-# they are automatically mapped by flask_restful.
-# other methods include put, delete, etc.
+        
 class Welcome(Resource):
+    """ 
+        Class for root page
+    """
     def get(self):
         return(jsonify({'message': 'HELLO!!'}))
 
 
 class FloorMap(Resource):
+    """
+        Class for getting details of floors of a building
+    """
     def get(self, code):
         global conn
         res = {'src': resources['floorMaps'][code[:-1].upper()][int(code[-1])]}
@@ -62,12 +68,18 @@ class FloorMap(Resource):
 
 
 class FloorMapFile(Resource):
+    """ 
+        Class for getting floor map file of each department
+    """
     def get(self, code):
         path = '../CETGo_Data/'+ code + '.svg'
         return send_file(path, mimetype='image/svg+xml')
 
 
 class Graph(Resource):
+    """ 
+        Class for getting shortest path data from Neo4J
+    """
     def get(self):
         data = request.args.to_dict()
         print(data)
@@ -83,12 +95,54 @@ class Graph(Resource):
         return(jsonify({'res': 'hello'}))
 
 
+class User(UserMixin):
+    """ 
+        User class for login
+    """
+    def __init__(self, id):
+        self.id = id
+
+    @staticmethod
+    def get(user_id):
+        # Replace this with code that retrieves a user from a database or other data source
+        return User(user_id)
+
+
+@login_manager.user_loader
+def load_user(user_id):
+    return User.get(user_id)
+
+
+class Login(Resource):
+    def post(self):
+        user_id = request.form['user_id']
+        user = User.get(user_id)
+        if user:
+            login_user(user)
+            return {'message': 'Login successful.'}
+        else:
+            return {'message': 'Invalid user ID.'}
+
+class Protected(Resource):
+    @login_required
+    def get(self):
+        return {'message': f'Hello, {current_user.id}!'}
+
+class Logout(Resource):
+    @login_required
+    def post(self):
+        logout_user()
+        return {'message': 'Logout successful.'}
+
+
 # adding the defined resources along with their corresponding urls
 api.add_resource(Welcome, '/')
 api.add_resource(FloorMap, '/floors/<string:code>')
 api.add_resource(FloorMapFile, '/floorplan/<string:code>')
 api.add_resource(Graph, '/shortestpath')
-
+api.add_resource(Login, '/login')
+api.add_resource(Protected, '/protected')
+api.add_resource(Logout, '/logout')
 # driver function
 if __name__ == '__main__':
     app.run(debug = True)
