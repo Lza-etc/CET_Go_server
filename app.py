@@ -16,7 +16,7 @@ resources = {
 }
 
 # get credentials
-config = dict(dotenv_values("cred.env"))
+config = dict(dotenv_values("../cred.env"))
 # print(config)
 # graph db
 neo4j_uri_to_server = config["NEO4J_URI"]
@@ -35,6 +35,7 @@ login_manager = LoginManager()
 app = Flask(__name__)
 # creating an API object
 api = Api(app)
+app.config['SECRET_KEY'] = 'mysecretkey'
 login_manager.init_app(app)
 
 conn = psql.connect(dbname=psql_db, user=psql_usr, password=psql_pass, host=psql_host, port=psql_port)
@@ -56,7 +57,7 @@ class FloorMap(Resource):
         res = {'src': resources['floorMaps'][code[:-1].upper()][int(code[-1])]}
         cur = conn.cursor()
         res['rooms'] = []
-        cur.execute("SELECT id,val FROM room_details where z='{}'".format(code[-1]))
+        cur.execute("SELECT id,val FROM {} where z='{}'".format("cse", code[-1]))
         for i in cur.fetchall():
             res['rooms'].append({'ID': i[0], 'Description': i[1]})
         cur.close()
@@ -99,34 +100,69 @@ class User(UserMixin):
     """ 
         User class for login
     """
-    def __init__(self, id):
+    def __init__(self, id, username, password):
         self.id = id
+        self.username = username
+        self.password = password
+        # self.email = email
 
     @staticmethod
-    def get(user_id):
-        # Replace this with code that retrieves a user from a database or other data source
-        return User(user_id)
+    def get_by_username(username):
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM users WHERE username = %s", (username,))
+            row = cur.fetchone()
+            if row is not None:
+                return User(id=row[0], username=row[1], password=row[2])
+            else:
+                return None
+
+    @staticmethod
+    def get_by_id(id):
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM users WHERE id = %s", (id,))
+            row = cur.fetchone()
+            if row is not None:
+                return User(id=row[0], username=row[1], password=row[2])
+            else:
+                return None
+
+    def to_json(self):        
+        return {"name": self.username}
+                # "email": self.email}
+
+    def is_authenticated(self):
+        return True
+
+    def is_active(self):   
+        return True           
+
+    def is_anonymous(self):
+        return False          
 
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User.get(user_id)
+    return User.get_by_id(user_id)
 
 
 class Login(Resource):
     def post(self):
-        user_id = request.form['user_id']
-        user = User.get(user_id)
-        if user:
+        data = request.get_json()
+        username = data['username']
+        password = data['password']
+        user = User.get_by_username(username)
+        if user is not None and user.password == password:
             login_user(user)
             return {'message': 'Login successful.'}
         else:
-            return {'message': 'Invalid user ID.'}
+            return {'message': 'Invalid username or password.'}
+
 
 class Protected(Resource):
     @login_required
     def get(self):
-        return {'message': f'Hello, {current_user.id}!'}
+        return {'message': f'Hello, {current_user.username}!'}
+
 
 class Logout(Resource):
     @login_required
