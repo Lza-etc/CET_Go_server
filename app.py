@@ -15,7 +15,7 @@ resources = {
 }
 
 # get credentials
-config = dict(dotenv_values("cred.env"))
+config = dict(dotenv_values("../cred.env"))
 # print(config)
 # graph db
 neo4j_uri_to_server = config["NEO4J_URI"]
@@ -84,22 +84,53 @@ class Graph(Resource):
 
 class Event(Resource):
     def post(self):
+        """ 
+            Handles create event. 
+                Data taken from body of request
+                Required fields to create event: 
+                    1. id : id of user creating event
+                    2. Operation = "Create" : tells function to create the event
+                    3. datetime : the date and time along with timezone of the scheduled event
+                    4. event_name : name of the event (max 50 chars)
+                    5. description : event description (Max 100 chars)
+                    6. location : where the event is happening, usually a room in a department
+        """
         data = request.get_json()     # status code
         message = "received"
         if('Count' in data.keys()):
             pass
         elif('id' in data.keys() and 'Operation' in data.keys()):
-            with conn.cursor as cur:
-                cur.execute("select id from users where id={}".format(data['id']))
+            # to be used after login code is complete
+            # if(data['id'] != current_user.id):
+            #     return( jsonify({'Error': 'Unauthorized user!', 'message': 'User id in request does not match user id of logged in user'}))
+            with conn.cursor() as cur:
+                # verify valid user
+                cur.execute("select id from users where id='{}'".format(data['id']))
                 if(cur.fetchone() == None):
                     return jsonify({'Error': 'Invalid user ID', 'message': 'User ID not found!'})
+
                 if(data['Operation'] == 'Create'):
+                    # get new event_id
                     cur.execute("Select max(event_id) from events")
                     event_id = int(cur.fetchone()[0]) + 1
-                    cur.execute("INSERT INTO events VALUES({}, {}, {}, {}, {})".format(event_id, data['id'], data['datetime'], data['description'], data['location']))
-                    if('INSERT 1' in cur.fetchone()):
-                        print("successfull")
+                
+                    # check if event with same name already exists
+                    cur.execute("select event_id from events where event_name='{}'".format(data['event_name']))
+                    if(cur.fetchone() is not None):
+                        return jsonify({'Error': 'Unable to create Event', 'message': 'Event with same name already exists!'})
+                
+                    # if all checks successful, inserting event
+                    insert_query = "INSERT INTO events VALUES(%s, %s, %s, %s, %s, %s)"
+                    cur.execute(insert_query, (event_id, data['id'], data['datetime'], data['description'], data['location'], data['event_name']))
+                    # check if insertion was successful
+                    if(cur.rowcount > 0):
+                        print("successful insertion of event {}".format(event_id))
+                        # commit the transaction
+                        conn.commit()
                         return( jsonify({'message': 'Event {} successfully created!'.format(event_id)}))
+                    else:
+                        message = "Unable to create event '{}'!".format(data['event_name'])
+
                 elif(data['Operation'] == 'Update'):
                     message = 'Update not yet available for use'
                     pass
@@ -114,7 +145,7 @@ api.add_resource(Welcome, '/')
 api.add_resource(FloorMap, '/floors/<string:code>')
 api.add_resource(FloorMapFile, '/floorplan/<string:code>')
 api.add_resource(Graph, '/shortestpath')
-
+api.add_resource(Event, '/events')
 # driver function
 if __name__ == '__main__':
     app.run(debug = True)
