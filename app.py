@@ -5,6 +5,7 @@ from dotenv import dotenv_values
 # requires neo4j module to run query directly from this script
 from neo4j import GraphDatabase
 import psycopg2 as psql
+import json
 
 resources = {
     "floorMaps": {
@@ -68,21 +69,34 @@ class FloorMapFile(Resource):
 
 
 class Graph(Resource):
-    def get(self):
-        data = request.args.to_dict()
+    def post(self):
+        data = dict(request.get_json())
         print(data)
         result = []
         if(data == None):
             return(jsonify({'message': 'No data found'}))
         graphDB_Driver  = GraphDatabase.driver(neo4j_uri_to_server, auth=(neo4j_usr, neo4j_pwd))
         with graphDB_Driver.session() as graphDB_Session:
-            # checking if the nodes where returned correctly
-            query = "match (p1:room {{id: '{0}'}}), (p2:room {{id: '{1}'}}), path = shortestPath((p1)-[*..15]-(p2)) return path".format(data['src'], data['dest'])
-            res = graphDB_Session.run(query)
-            # print(list(res.data()))
-            # for i in list(res):
-            #     print(i.data())
             with conn.cursor() as cur:
+                # check if both starting and destination points are in the db first
+                cur.execute("select id from {} where id='{}' or id='{}'".format(data['dept'], data['src'], data['dest']))
+                s = cur.fetchall()
+                if(len(s) != 2):
+                    message = ''
+                    yes= [0, 0]
+                    for i in s:
+                        if(i[0] == data['src']):
+                            yes[0] = 1
+                        elif(i[0] == data['dest']):
+                            yes[1] = 1
+                    message = "Unable to find {} {} in {}".format("" if yes[0] == 1 else data['src'], "" if yes[1] == 1 else data['dest'], data['dept'])
+                    return(jsonify({'Error': 'Invalid rooms!', 'message': message}))
+                # checking if the nodes where returned correctly
+                query = "match (p1:room {{id: '{0}'}}), (p2:room {{id: '{1}'}}), path = shortestPath((p1)-[*..15]-(p2)) return path".format(data['src'], data['dest'])
+                res = graphDB_Session.run(query)
+                # for i in list(res):
+                #     print(i.data())
+                print(list(res.data()))
                 query = "select id, val, fx, fy from {} where id=".format(data['dept'])
                 dc = res.data()[0]
                 for i in dc['path']:
@@ -93,10 +107,13 @@ class Graph(Resource):
                     # cur.execute(query, (str(i['id'])))
                     cur.execute(q2)
                     q = cur.fetchone()
+                    if(q == None):
+                        return jsonify({'Error': "Unable to find room", 'message': 'Unable to find {} in {}.'.format(i['id'], data['dept'])})
                     result.append({'id': i['id'], 'desc': q[1].strip(), 'fx': str(q[2]), 'fy': str(q[3])})
                     # print(result)
+                data['path'] = result
         graphDB_Driver.close()
-        return(jsonify({'res': 'hello', 'path': str(result)}))
+        return(jsonify(data))
 
 class Event(Resource):
     def post(self):
