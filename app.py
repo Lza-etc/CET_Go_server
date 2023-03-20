@@ -51,7 +51,7 @@ class FloorMap(Resource):
         res = {'src': resources['floorMaps'][code[:-1].upper()][int(code[-1])]}
         cur = conn.cursor()
         res['rooms'] = []
-        cur.execute("SELECT id,val FROM room_details where z='{}'".format(code[-1]))
+        cur.execute("SELECT id,val FROM {} where z='{}'".format(code[:-1], code[-1]))
         for i in cur.fetchall():
             res['rooms'].append({'ID': i[0], 'Description': i[1]})
         cur.close()
