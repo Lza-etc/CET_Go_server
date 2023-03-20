@@ -71,16 +71,32 @@ class Graph(Resource):
     def get(self):
         data = request.args.to_dict()
         print(data)
+        result = []
         if(data == None):
             return(jsonify({'message': 'No data found'}))
         graphDB_Driver  = GraphDatabase.driver(neo4j_uri_to_server, auth=(neo4j_usr, neo4j_pwd))
         with graphDB_Driver.session() as graphDB_Session:
             # checking if the nodes where returned correctly
-            query = "match (p1:room {id: '{0}'}), (p2:room {id: '{1}'}), path = shortestPath((p1)-[*..15]-(p2)) return path".format(data['src'], data['dest'])
+            query = "match (p1:room {{id: '{0}'}}), (p2:room {{id: '{1}'}}), path = shortestPath((p1)-[*..15]-(p2)) return path".format(data['src'], data['dest'])
             res = graphDB_Session.run(query)
-            print(res)
+            # print(list(res.data()))
+            # for i in list(res):
+            #     print(i.data())
+            with conn.cursor() as cur:
+                query = "select id, val, fx, fy from {} where id=".format(data['dept'])
+                dc = res.data()[0]
+                for i in dc['path']:
+                    if( not isinstance(i, dict)):
+                        continue
+                    # because using tupled call of cur.execute is giving error
+                    q2 = query[:] + "'{}'".format(i['id'])
+                    # cur.execute(query, (str(i['id'])))
+                    cur.execute(q2)
+                    q = cur.fetchone()
+                    result.append({'id': i['id'], 'desc': q[1].strip(), 'fx': str(q[2]), 'fy': str(q[3])})
+                    # print(result)
         graphDB_Driver.close()
-        return(jsonify({'res': 'hello'}))
+        return(jsonify({'res': 'hello', 'path': str(result)}))
 
 class Event(Resource):
     def post(self):
