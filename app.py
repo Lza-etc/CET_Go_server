@@ -96,7 +96,7 @@ class Graph(Resource):
                 res = graphDB_Session.run(query)
                 # for i in list(res):
                 #     print(i.data())
-                print(list(res.data()))
+                # print(list(res.data()))
                 query = "select id, val, fx, fy from {} where id=".format(data['dept'])
                 dc = res.data()[0]
                 for i in dc['path']:
@@ -116,6 +116,23 @@ class Graph(Resource):
         return(jsonify(data))
 
 class Event(Resource):
+    def get(self):
+        data = {}
+        # data = request.get_json()     # status code
+        # # message = "received"
+        # if('List' in data.keys()):
+        with conn.cursor() as cur:
+            cur.execute("select * from events where id not in ('1')")
+            res = cur.fetchall()
+            result = {}
+            data['count'] = len(res)
+            data['events'] = []
+            for i in res:
+                data['events'].append({'event_id': i[0], 'datetime':i[2], 'description': i[3], 'location':i[4], 'event_name':i[5]})
+        # else:
+            # data['Error'] = 'Invalid request!'
+        return(jsonify(data)) 
+
     def post(self):
         """ 
             Handles create event. 
@@ -130,8 +147,16 @@ class Event(Resource):
         """
         data = request.get_json()     # status code
         message = "received"
-        if('Count' in data.keys()):
-            pass
+        if('List' in data.keys()):
+            with conn.cursor() as cur:
+                cur.execute("select * from events where id not in ('1')")
+                res = cur.fetchall()
+                result = {}
+                data['count'] = len(res)
+                data['events'] = []
+                for i in res:
+                    data['events'].append({'event_id': i[0], 'datetime':i[2], 'description': i[3], 'location':i[4], 'event_name':i[5]})
+            return(jsonify(data)) 
         elif('id' in data.keys() and 'Operation' in data.keys()):
             # to be used after login code is complete
             # if(data['id'] != current_user.id):
