@@ -82,6 +82,32 @@ class Graph(Resource):
         graphDB_Driver.close()
         return(jsonify({'res': 'hello'}))
 
+class Event(Resource):
+    def post(self):
+        data = request.get_json()     # status code
+        message = "received"
+        if('Count' in data.keys()):
+            pass
+        elif('id' in data.keys() and 'Operation' in data.keys()):
+            with conn.cursor as cur:
+                cur.execute("select id from users where id={}".format(data['id']))
+                if(cur.fetchone() == None):
+                    return jsonify({'Error': 'Invalid user ID', 'message': 'User ID not found!'})
+                if(data['Operation'] == 'Create'):
+                    cur.execute("Select max(event_id) from events")
+                    event_id = int(cur.fetchone()[0]) + 1
+                    cur.execute("INSERT INTO events VALUES({}, {}, {}, {}, {})".format(event_id, data['id'], data['datetime'], data['description'], data['location']))
+                    if('INSERT 1' in cur.fetchone()):
+                        print("successfull")
+                        return( jsonify({'message': 'Event {} successfully created!'.format(event_id)}))
+                elif(data['Operation'] == 'Update'):
+                    message = 'Update not yet available for use'
+                    pass
+                elif(data['Operation'] == 'Delete'):
+                    message = 'Delete not yet available for use'
+                    pass 
+        return jsonify({'data': data, 'message': message}), 201
+        
 
 # adding the defined resources along with their corresponding urls
 api.add_resource(Welcome, '/')
