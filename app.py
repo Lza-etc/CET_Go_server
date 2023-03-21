@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request, send_file
 from flask_restful import Resource, Api
+from flask_cors import CORS
 from dotenv import dotenv_values
 # from PIL import Image
 # requires neo4j module to run query directly from this script
@@ -35,6 +36,7 @@ login_manager = LoginManager()
 # creating the flask app
 app = Flask(__name__)
 # creating an API object
+CORS(app)
 api = Api(app)
 app.config['SECRET_KEY'] = 'mysecretkey'
 login_manager.init_app(app)
