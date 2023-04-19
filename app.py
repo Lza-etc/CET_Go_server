@@ -60,9 +60,9 @@ class FloorMap(Resource):
         res = {'src': resources['floorMaps'][code[:-1].upper()][int(code[-1])]}
         cur = conn.cursor()
         res['rooms'] = []
-        cur.execute("SELECT id,val FROM {} where z='{}'".format(code[:-1], code[-1]))
+        cur.execute("SELECT * FROM {} where z='{}'".format(code[:-1], code[-1]))
         for i in cur.fetchall():
-            res['rooms'].append({'ID': i[0], 'Description': i[1]})
+            res['rooms'].append({'ID': i[0], 'x':i[1], 'y':i[2], 'z':i[3], 'Description': i[4], 'fx':i[5], 'fy':i[6]})
         cur.close()
         return jsonify(res)
     # Corresponds to POST request
