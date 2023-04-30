@@ -151,7 +151,7 @@ class Event(Resource):
     @login_required
     def post(self):
         """ 
-            Handles create event. 
+            Handles event functions. 
                 Data taken from body of request
                 Required fields to create event: 
                     1. id : id of user creating event
@@ -175,7 +175,7 @@ class Event(Resource):
                 # verify valid user
                 cur.execute("select id from users where id='{}'".format(current_user.id))
                 if(cur.fetchone() == None):
-                    return jsonify({'Error': 'Invalid user ID', 'message': 'User ID not found!'})
+                    return jsonify({'Error': 'Invalid user ID', 'message': 'User ID not found!'}), 201
 
                 if(data['Operation'] == 'List'):
                     # List events
@@ -217,12 +217,14 @@ class Event(Resource):
                 elif(data['Operation'] == 'Delete'):
                     cur.execute("Delete From events Where id='{}'".format(data['event_id']))
                     if(cur.rowcount != 0):
-                        message = "Event successfully deleted!"
+                        message = 'Event successfully deleted!'
                     else:
-                        message = "Error, Unable to delete event!"
+                        message = 'Error, Unable to delete event!'
                 else: 
-                    message = "Invalid Operation Specified"
-        return jsonify({'data': data, 'message': message}), 201
+                    message = 'Invalid Operation Specified'
+        # the following causes an error
+        # return jsonify({'data': data, 'message': message}), 200
+        return jsonify({'data': data, 'message': message})
         
 
 class User(UserMixin):
