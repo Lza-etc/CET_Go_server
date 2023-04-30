@@ -15,9 +15,15 @@ Simple Flask server for project
 
 	returns shortest path
 
+1. /login and /logout 
+
+	For event creators to log in to create / modify events
+
 1. /events 
+	
 	GET : returns all events
-	POSt: allows to create and modify events
+	
+	POST: allows to create and modify events (Requires Login)
 
 
 ## cred.env file format
