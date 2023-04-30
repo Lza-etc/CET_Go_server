@@ -15,6 +15,10 @@ Simple Flask server for project
 
 	returns shortest path
 
+1. /events 
+	GET : returns all events
+	POSt: allows to create and modify events
+
 
 ## cred.env file format
 

@@ -165,7 +165,7 @@ class Event(Resource):
         message = "received"
         if('List' in data.keys()):
             with conn.cursor() as cur:
-                cur.execute("select * from events where id not in ('1')")
+                cur.execute("select * from events where id='{}'".format(current_user.id))
                 res = cur.fetchall()
                 result = {}
                 data['count'] = len(res)
@@ -179,7 +179,7 @@ class Event(Resource):
             #     return( jsonify({'Error': 'Unauthorized user!', 'message': 'User id in request does not match user id of logged in user'}))
             with conn.cursor() as cur:
                 # verify valid user
-                cur.execute("select id from users where id='{}'".format(data['id']))
+                cur.execute("select id from users where id='{}'".format(current_user.id))
                 if(cur.fetchone() == None):
                     return jsonify({'Error': 'Invalid user ID', 'message': 'User ID not found!'})
 
