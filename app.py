@@ -155,7 +155,11 @@ class Event(Resource):
                 Data taken from body of request
                 Required fields to create event: 
                     1. id : id of user creating event
-                    2. Operation = "Create" : tells function to create the event
+                    2. Operation 
+                        = "List" : Returns list of events created by user
+                        = "Create" : tells function to create the event
+                        = "Update" : Updates event specified, requires entire event data like that for "Create"
+                        = "Delete" : Deletes event specified by id
                     3. datetime : the date and time along with timezone of the scheduled event
                     4. event_name : name of the event (max 50 chars)
                     5. description : event description (Max 100 chars)
@@ -163,17 +167,7 @@ class Event(Resource):
         """
         data = request.get_json()     # status code
         message = "received"
-        if('List' in data.keys()):
-            with conn.cursor() as cur:
-                cur.execute("select * from events where id='{}'".format(current_user.id))
-                res = cur.fetchall()
-                result = {}
-                data['count'] = len(res)
-                data['events'] = []
-                for i in res:
-                    data['events'].append({'event_id': i[0], 'datetime':i[2], 'description': i[3], 'location':i[4], 'event_name':i[5]})
-            return(jsonify(data)) 
-        elif('Operation' in data.keys()):
+        if('Operation' in data.keys()):
             # to be used after login code is complete
             # if(data['id'] != current_user.id):
             #     return( jsonify({'Error': 'Unauthorized user!', 'message': 'User id in request does not match user id of logged in user'}))
@@ -183,7 +177,18 @@ class Event(Resource):
                 if(cur.fetchone() == None):
                     return jsonify({'Error': 'Invalid user ID', 'message': 'User ID not found!'})
 
-                if(data['Operation'] == 'Create'):
+                if(data['Operation'] == 'List'):
+                    # List events
+                    cur.execute("select * from events where id='{}'".format(current_user.id))
+                    res = cur.fetchall()
+                    result = {}
+                    data['count'] = len(res)
+                    data['events'] = []
+                    for i in res:
+                        data['events'].append({'event_id': i[0], 'datetime':i[2], 'description': i[3], 'location':i[4], 'event_name':i[5]})
+
+                elif(data['Operation'] == 'Create'):
+                    # Create new event
                     # get new event_id
                     cur.execute("Select max(event_id) from events")
                     event_id = int(cur.fetchone()[0]) + 1
@@ -208,12 +213,15 @@ class Event(Resource):
                 elif(data['Operation'] == 'Update'):
                     message = 'Update not yet available for use'
                     pass
+
                 elif(data['Operation'] == 'Delete'):
                     cur.execute("Delete From events Where id='{}'".format(data['event_id']))
                     if(cur.rowcount != 0):
                         message = "Event successfully deleted!"
                     else:
                         message = "Error, Unable to delete event!"
+                else: 
+                    message = "Invalid Operation Specified"
         return jsonify({'data': data, 'message': message}), 201
         
 
