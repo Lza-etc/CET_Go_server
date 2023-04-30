@@ -173,7 +173,7 @@ class Event(Resource):
                 for i in res:
                     data['events'].append({'event_id': i[0], 'datetime':i[2], 'description': i[3], 'location':i[4], 'event_name':i[5]})
             return(jsonify(data)) 
-        elif('id' in data.keys() and 'Operation' in data.keys()):
+        elif('Operation' in data.keys()):
             # to be used after login code is complete
             # if(data['id'] != current_user.id):
             #     return( jsonify({'Error': 'Unauthorized user!', 'message': 'User id in request does not match user id of logged in user'}))
@@ -209,8 +209,11 @@ class Event(Resource):
                     message = 'Update not yet available for use'
                     pass
                 elif(data['Operation'] == 'Delete'):
-                    message = 'Delete not yet available for use'
-                    pass 
+                    cur.execute("Delete From events Where id='{}'".format(data['event_id']))
+                    if(cur.rowcount != 0):
+                        message = "Event successfully deleted!"
+                    else:
+                        message = "Error, Unable to delete event!"
         return jsonify({'data': data, 'message': message}), 201
         
 
