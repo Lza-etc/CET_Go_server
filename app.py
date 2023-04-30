@@ -148,6 +148,7 @@ class Event(Resource):
             # data['Error'] = 'Invalid request!'
         return(jsonify(data)) 
 
+    @login_required
     def post(self):
         """ 
             Handles create event. 
