@@ -1,4 +1,4 @@
-from flask import Flask, jsonify, request, send_file
+from flask import Flask, jsonify, request, send_file, make_response
 from flask_restful import Resource, Api
 from flask_cors import CORS
 from dotenv import dotenv_values
@@ -211,8 +211,22 @@ class Event(Resource):
                         message = "Unable to create event '{}'!".format(data['event_name'])
 
                 elif(data['Operation'] == 'Update'):
+                    break
                     message = 'Update not yet available for use'
-                    pass
+                    event_id = data['event_id']
+                    cur.execute("select event_id from events where event_name='{}'".format(data['event_name']))
+                    if(cur.fetchone() is not None):
+                        return jsonify({'Error': 'Unable to create Event', 'message': 'Event with same name already exists!'})
+                    insert_query = "UPDATE events SET =%s, =%s, =%s, =%s, =%s) WHERE id=%s"
+                    cur.execute(insert_query, (data['id'], data['datetime'], data['description'], data['location'], data['event_name'], event_id))
+                    # check if insertion was successful
+                    if(cur.rowcount > 0):
+                        print("successful updation of event {}".format(event_id))
+                        # commit the transaction
+                        conn.commit()
+                        return( jsonify({'message': 'Event {} successfully updated!'.format(event_id)}))
+                    else:
+                        message = "Unable to update event '{}'!".format(data['event_name'])
 
                 elif(data['Operation'] == 'Delete'):
                     cur.execute("Delete From events Where id='{}'".format(data['event_id']))
@@ -226,6 +240,41 @@ class Event(Resource):
         # return jsonify({'data': data, 'message': message}), 200
         return jsonify({'data': data, 'message': message})
         
+
+class Organizer(Resource):
+    def get(self, name):
+        with conn.cursor() as cur:
+            cur.execute("select username, displayname, about, profile_image, image_extension from users where username = %s", (name))
+            data = {}
+            res = cur.fetchall()
+            if(cur.rowcount > 0):
+                data['message'] = "Found!"
+                data['organizer'] = {'name': res[0], 'display_name':res[1], 'about': res[2]}
+                if(res[3]):
+                    file_response = send_file(
+                        io.BytesIO(res[3]),
+                        mimetype='image/jpeg',
+                        as_attachment=True,
+                        attachment_filename='image.jpg'
+                    )
+                    # Create a JSON response
+                    json_response = jsonify(data)
+                    # Create a file response with dynamic MIME type based on the file extension
+                    headers = {
+                        'Content-Disposition': 'attachment; filename=image',
+                    }
+                    file_response = make_response(image_data)
+                    file_response.headers.set('Content-Type', f'image/{res[4]}')
+                    file_response.headers.set('Content-Disposition', 'attachment', filename='image' + res[4])
+                    # Create a combined response
+                    combined_data = make_response((json_response, file_response))
+                    return combined_data
+            else:
+                data['message'] = 'Invalid request!'
+        return(jsonify(data)) 
+    def post(self):
+        pass
+
 
 class User(UserMixin):
     """ 
