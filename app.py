@@ -173,7 +173,7 @@ class Event(Resource):
             #     return( jsonify({'Error': 'Unauthorized user!', 'message': 'User id in request does not match user id of logged in user'}))
             with conn.cursor() as cur:
                 # verify valid user
-                cur.execute("select id from users where id='{}'".format(current_user.id))
+                cur.execute("select id from organizers where id='{}'".format(current_user.id))
                 if(cur.fetchone() == None):
                     return jsonify({'Error': 'Invalid user ID', 'message': 'User ID not found!'}), 201
 
@@ -244,7 +244,7 @@ class Event(Resource):
 class Organizer(Resource):
     def get(self, name):
         with conn.cursor() as cur:
-            cur.execute("select username, displayname, about, profile_image, image_extension from users where username = %s", (name))
+            cur.execute("select username, displayname, about, profile_image, image_extension from organizers where username = %s", (name))
             data = {}
             res = cur.fetchall()
             if(cur.rowcount > 0):
@@ -289,7 +289,7 @@ class User(UserMixin):
     @staticmethod
     def get_by_username(username):
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM users WHERE username = %s", (username,))
+            cur.execute("SELECT * FROM organizers WHERE username = %s", (username,))
             row = cur.fetchone()
             if row is not None:
                 return User(id=row[0], username=row[1], password=row[2])
@@ -299,7 +299,7 @@ class User(UserMixin):
     @staticmethod
     def get_by_id(id):
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM users WHERE id = %s", (id,))
+            cur.execute("SELECT * FROM organizers WHERE id = %s", (id,))
             row = cur.fetchone()
             if row is not None:
                 return User(id=row[0], username=row[1], password=row[2])
@@ -360,6 +360,7 @@ api.add_resource(Event, '/events')
 api.add_resource(Login, '/login')
 api.add_resource(Protected, '/protected')
 api.add_resource(Logout, '/logout')
+api.add_resource(Organizer, '/organizer/<string:name>')
 
 # driver function
 if __name__ == '__main__':
