@@ -211,7 +211,7 @@ class Event(Resource):
                         message = "Unable to create event '{}'!".format(data['event_name'])
 
                 elif(data['Operation'] == 'Update'):
-                    break
+                    # break
                     message = 'Update not yet available for use'
                     event_id = data['event_id']
                     cur.execute("select event_id from events where event_name='{}'".format(data['event_name']))
