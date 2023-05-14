@@ -245,8 +245,8 @@ class Event(Resource):
                     message = 'Update not yet available for use'
                     event_id = data['event_id']
                     cur.execute("select event_id from events where title='{}'".format(data['title']))
-                    if(cur.fetchone() is not None):
-                        return jsonify({'Error': 'Unable to create Event', 'message': 'Event with same name already exists!'})
+                    # if(cur.fetchone() is not None):
+                    #     return jsonify({'Error': 'Unable to create Event', 'message': 'Event with same name already exists!'})
 
                     image_data = "NULL"
                     image_extension = "NULL"
@@ -256,8 +256,8 @@ class Event(Resource):
                         image_filename = image_file.filename
                         image_extension = os.path.splitext(image_filename)[1]
                     # if all checks successful, inserting event
-                    insert_query = "INSERT INTO events VALUES(%s, %s, %s, %s, %s, %s, %s, %s)"
-                    cur.execute(insert_query, (event_id, data['id'], data['datetime'], data['title'], data['description'], data['location'], image_data, image_extension))
+                    insert_query = "UPDATE events SET id=%s, datetime=%s, title=%s, description=%s, location=%s, image=%s, image_extension=%s WHERE event_id=%s"
+                    cur.execute(insert_query, (data['id'], data['datetime'], data['title'], data['description'], data['location'], image_data, image_extension, event_id))
                     # check if insertion was successful
                     if(cur.rowcount > 0):
                         print("successful updation of event {}".format(event_id))
