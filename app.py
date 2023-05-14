@@ -8,6 +8,10 @@ from neo4j import GraphDatabase
 import psycopg2 as psql
 from flask_login import LoginManager, UserMixin, login_user, logout_user, login_required, current_user
 import json
+import io
+import base64
+import os
+
 
 resources = {
     "floorMaps": {
@@ -146,6 +150,8 @@ def createCombinedEventDataAndImage(data, image, image_extension):
     return combined_data
 
 
+# def insertData():
+
 class Event(Resource):
     def get(self):
         data = {}
@@ -213,10 +219,18 @@ class Event(Resource):
                     cur.execute("select event_id from events where title='{}'".format(data['title']))
                     if(cur.fetchone() is not None):
                         return jsonify({'Error': 'Unable to create Event', 'message': 'Event with same name already exists!'})
-                
+                    
+                    image_data = "NULL"
+                    image_extension = "NULL"
+                    image_file = request.files.get('image')
+                    if image_file is not None:
+                        image_data = image_file.read()
+                        image_filename = image_file.filename
+                        image_extension = os.path.splitext(image_filename)[1]
+                    print(event_id, data['id'], data['datetime'], data['title'], data['description'], data['location'], image_data, image_extension)
                     # if all checks successful, inserting event
-                    insert_query = "INSERT INTO events VALUES(%s, %s, %s, %s, %s, %s)"
-                    cur.execute(insert_query, (event_id, data['id'], data['datetime'], data['description'], data['location'], data['title']))
+                    insert_query = "INSERT INTO events VALUES(%s, %s, %s, %s, %s, %s, %s, %s)"
+                    cur.execute(insert_query, (event_id, data['id'], data['datetime'], data['title'], data['description'], data['location'], image_data, image_extension))
                     # check if insertion was successful
                     if(cur.rowcount > 0):
                         print("successful insertion of event {}".format(event_id))
@@ -233,8 +247,17 @@ class Event(Resource):
                     cur.execute("select event_id from events where title='{}'".format(data['title']))
                     if(cur.fetchone() is not None):
                         return jsonify({'Error': 'Unable to create Event', 'message': 'Event with same name already exists!'})
-                    insert_query = "UPDATE events SET =%s, =%s, =%s, =%s, =%s) WHERE id=%s"
-                    cur.execute(insert_query, (data['id'], data['datetime'], data['description'], data['location'], data['title'], event_id))
+
+                    image_data = "NULL"
+                    image_extension = "NULL"
+                    image_file = request.files.get('image')
+                    if image_file is not None:
+                        image_data = image_file.read()
+                        image_filename = image_file.filename
+                        image_extension = os.path.splitext(image_filename)[1]
+                    # if all checks successful, inserting event
+                    insert_query = "INSERT INTO events VALUES(%s, %s, %s, %s, %s, %s, %s, %s)"
+                    cur.execute(insert_query, (event_id, data['id'], data['datetime'], data['title'], data['description'], data['location'], image_data, image_extension))
                     # check if insertion was successful
                     if(cur.rowcount > 0):
                         print("successful updation of event {}".format(event_id))
@@ -245,13 +268,15 @@ class Event(Resource):
                         message = "Unable to update event '{}'!".format(data['title'])
 
                 elif(data['Operation'] == 'Delete'):
-                    cur.execute("Delete From events Where id='{}'".format(data['event_id']))
+                    cur.execute("Delete From events Where event_id='{}'".format(data['event_id']))
                     if(cur.rowcount != 0):
                         message = 'Event successfully deleted!'
+                        conn.commit()
                     else:
                         message = 'Error, Unable to delete event!'
                 else: 
                     message = 'Invalid Operation Specified'
+
         # the following causes an error
         # return jsonify({'data': data, 'message': message}), 200
         return jsonify({'data': data, 'message': message})
@@ -352,6 +377,22 @@ class Logout(Resource):
         return {'message': 'Logout successful.'}
 
 
+class Departments(Resource):
+    def get(self):
+        data = {}
+        with conn.cursor() as cur:
+            cur.execute("select * from depts")
+            res = cur.fetchall()
+            result = {}
+            data['count'] = len(res)
+            data['depts'] = []
+            for i in res:
+                data['depts'].append({'id': i[0], 'x':i[1],  'y':i[2], 'name': i[3]})
+        # else:
+            # data['Error'] = 'Invalid request!'
+        return(jsonify(data)) 
+
+
 # adding the defined resources along with their corresponding urls
 api.add_resource(Welcome, '/')
 api.add_resource(FloorMap, '/floors/<string:code>')
@@ -362,6 +403,7 @@ api.add_resource(Login, '/login')
 api.add_resource(Protected, '/protected')
 api.add_resource(Logout, '/logout')
 api.add_resource(Organizer, '/organizer/<string:name>')
+api.add_resource(Departments, '/depts')
 
 # driver function
 if __name__ == '__main__':
