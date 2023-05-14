@@ -159,13 +159,18 @@ class Event(Resource):
         # # message = "received"
         # if('List' in data.keys()):
         with conn.cursor() as cur:
-            cur.execute("select * from events where id not in ('1')")
+            cur.execute("select * from events where id not in ('0')")
             res = cur.fetchall()
             result = {}
             data['count'] = len(res)
             data['events'] = []
             for i in res:
-                data['events'].append({'event_id': i[0], 'datetime':i[2],  'title':i[3], 'description': i[4], 'location':i[5]})
+                image = ""
+                image_extension = ""
+                if(i[6]): 
+                    image = bytes(i[6]).decode('utf-8')
+                    image_extension = i[7]
+                data['events'].append({'event_id': i[0], 'datetime':i[2],  'title':i[3], 'description': i[4], 'location':i[5], 'image': image, 'image_extension': image_extension})
         # else:
             # data['Error'] = 'Invalid request!'
         return(jsonify(data)) 
@@ -207,7 +212,17 @@ class Event(Resource):
                     data['count'] = len(res)
                     data['events'] = []
                     for i in res:
-                        data['events'].append({'event_id': i[0], 'datetime':i[2], 'title': i[3], 'description': i[4], 'location':i[5], 'title':i[5]})
+                        # image_url = ""
+                        # if(i[6]):
+                        #     image_base64 = base64.b64encode(i[6]).decode('utf-8')
+                        #     image_url = f'data:image/{i[7]};base64,{image_base64}'
+                        # data['events'].append({'event_id': i[0], 'id': i[1], 'datetime':i[2], 'title': i[3], 'description': i[4], 'location':i[5], 'image': image_url})
+                        image = ""
+                        image_extension = ""
+                        if(i[6]): 
+                            image = bytes(i[6]).decode('utf-8')
+                            image_extension = i[7]
+                        data['events'].append({'event_id': i[0], 'datetime':i[2],  'title':i[3], 'description': i[4], 'location':i[5], 'image': image, 'image_extension': image_extension})
 
                 elif(data['Operation'] == 'Create'):
                     # Create new event
@@ -222,11 +237,14 @@ class Event(Resource):
                     
                     image_data = "NULL"
                     image_extension = "NULL"
-                    image_file = request.files.get('image')
-                    if image_file is not None:
-                        image_data = image_file.read()
-                        image_filename = image_file.filename
-                        image_extension = os.path.splitext(image_filename)[1]
+                    # image_file = request.files.get('image')
+                    # if image_file is not None:
+                    #     image_data = image_file.read()
+                    #     image_filename = image_file.filename
+                    #     image_extension = os.path.splitext(image_filename)[1]
+                    if(data['image']):
+                        image_data = data['image']
+                        image_extension = data['image_extension']
                     print(event_id, data['id'], data['datetime'], data['title'], data['description'], data['location'], image_data, image_extension)
                     # if all checks successful, inserting event
                     insert_query = "INSERT INTO events VALUES(%s, %s, %s, %s, %s, %s, %s, %s)"
@@ -247,14 +265,18 @@ class Event(Resource):
                     cur.execute("select event_id from events where title='{}'".format(data['title']))
                     # if(cur.fetchone() is not None):
                     #     return jsonify({'Error': 'Unable to create Event', 'message': 'Event with same name already exists!'})
-
-                    image_data = "NULL"
-                    image_extension = "NULL"
-                    image_file = request.files.get('image')
-                    if image_file is not None:
-                        image_data = image_file.read()
-                        image_filename = image_file.filename
-                        image_extension = os.path.splitext(image_filename)[1]
+                    # print(data)
+                    image_data = ""
+                    image_extension = ""
+                    # image_file = request.files.get('image')
+                    # if image_file is not None:
+                    #     image_data = image_file.read()
+                    #     image_filename = image_file.filename
+                    #     image_extension = os.path.splitext(image_filename)[1]
+                    #     image_file.save('./test_image.png')
+                    if(data['image']):
+                        image_data = data['image']
+                        image_extension = data['image_extension']
                     # if all checks successful, inserting event
                     insert_query = "UPDATE events SET id=%s, datetime=%s, title=%s, description=%s, location=%s, image=%s, image_extension=%s WHERE event_id=%s"
                     cur.execute(insert_query, (data['id'], data['datetime'], data['title'], data['description'], data['location'], image_data, image_extension, event_id))
