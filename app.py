@@ -292,7 +292,7 @@ class User(UserMixin):
             cur.execute("SELECT * FROM organizers WHERE username = %s", (username,))
             row = cur.fetchone()
             if row is not None:
-                return User(id=row[0], username=row[1], password=row[2])
+                return User(id=row[0], username=row[1], password=row[3])
             else:
                 return None
 
@@ -302,7 +302,7 @@ class User(UserMixin):
             cur.execute("SELECT * FROM organizers WHERE id = %s", (id,))
             row = cur.fetchone()
             if row is not None:
-                return User(id=row[0], username=row[1], password=row[2])
+                return User(id=row[0], username=row[1], password=row[3])
             else:
                 return None
 
@@ -331,6 +331,7 @@ class Login(Resource):
         username = data['username']
         password = data['password']
         user = User.get_by_username(username)
+        print(username, password, user, user.password)
         if user is not None and user.password == password:
             login_user(user)
             return {'message': 'Login successful.'}
