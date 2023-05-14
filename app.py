@@ -130,6 +130,22 @@ class Graph(Resource):
         graphDB_Driver.close()
         return(jsonify(data))
 
+
+def createCombinedEventDataAndImage(data, image, image_extension):
+    # Create a JSON response
+    json_response = jsonify(data)
+    # Create a file response with dynamic MIME type based on the file extension
+    headers = {
+        'Content-Disposition': 'attachment; filename=image',
+    }
+    file_response = make_response(image)
+    file_response.headers.set('Content-Type', f'image/{image_extension}')
+    file_response.headers.set('Content-Disposition', 'attachment', filename=data['username'] + image_extension)
+    # Create a combined response
+    combined_data = make_response((json_response, file_response))
+    return combined_data
+
+
 class Event(Resource):
     def get(self):
         data = {}
@@ -143,7 +159,7 @@ class Event(Resource):
             data['count'] = len(res)
             data['events'] = []
             for i in res:
-                data['events'].append({'event_id': i[0], 'datetime':i[2], 'description': i[3], 'location':i[4], 'event_name':i[5]})
+                data['events'].append({'event_id': i[0], 'datetime':i[2],  'title':i[3], 'description': i[4], 'location':i[5]})
         # else:
             # data['Error'] = 'Invalid request!'
         return(jsonify(data)) 
@@ -161,7 +177,7 @@ class Event(Resource):
                         = "Update" : Updates event specified, requires entire event data like that for "Create"
                         = "Delete" : Deletes event specified by id
                     3. datetime : the date and time along with timezone of the scheduled event
-                    4. event_name : name of the event (max 50 chars)
+                    4. title : name of the event (max 50 chars)
                     5. description : event description (Max 100 chars)
                     6. location : where the event is happening, usually a room in a department
         """
@@ -185,7 +201,7 @@ class Event(Resource):
                     data['count'] = len(res)
                     data['events'] = []
                     for i in res:
-                        data['events'].append({'event_id': i[0], 'datetime':i[2], 'description': i[3], 'location':i[4], 'event_name':i[5]})
+                        data['events'].append({'event_id': i[0], 'datetime':i[2], 'title': i[3], 'description': i[4], 'location':i[5], 'title':i[5]})
 
                 elif(data['Operation'] == 'Create'):
                     # Create new event
@@ -194,13 +210,13 @@ class Event(Resource):
                     event_id = int(cur.fetchone()[0]) + 1
                 
                     # check if event with same name already exists
-                    cur.execute("select event_id from events where event_name='{}'".format(data['event_name']))
+                    cur.execute("select event_id from events where title='{}'".format(data['title']))
                     if(cur.fetchone() is not None):
                         return jsonify({'Error': 'Unable to create Event', 'message': 'Event with same name already exists!'})
                 
                     # if all checks successful, inserting event
                     insert_query = "INSERT INTO events VALUES(%s, %s, %s, %s, %s, %s)"
-                    cur.execute(insert_query, (event_id, data['id'], data['datetime'], data['description'], data['location'], data['event_name']))
+                    cur.execute(insert_query, (event_id, data['id'], data['datetime'], data['description'], data['location'], data['title']))
                     # check if insertion was successful
                     if(cur.rowcount > 0):
                         print("successful insertion of event {}".format(event_id))
@@ -208,17 +224,17 @@ class Event(Resource):
                         conn.commit()
                         return( jsonify({'message': 'Event {} successfully created!'.format(event_id)}))
                     else:
-                        message = "Unable to create event '{}'!".format(data['event_name'])
+                        message = "Unable to create event '{}'!".format(data['title'])
 
                 elif(data['Operation'] == 'Update'):
                     # break
                     message = 'Update not yet available for use'
                     event_id = data['event_id']
-                    cur.execute("select event_id from events where event_name='{}'".format(data['event_name']))
+                    cur.execute("select event_id from events where title='{}'".format(data['title']))
                     if(cur.fetchone() is not None):
                         return jsonify({'Error': 'Unable to create Event', 'message': 'Event with same name already exists!'})
                     insert_query = "UPDATE events SET =%s, =%s, =%s, =%s, =%s) WHERE id=%s"
-                    cur.execute(insert_query, (data['id'], data['datetime'], data['description'], data['location'], data['event_name'], event_id))
+                    cur.execute(insert_query, (data['id'], data['datetime'], data['description'], data['location'], data['title'], event_id))
                     # check if insertion was successful
                     if(cur.rowcount > 0):
                         print("successful updation of event {}".format(event_id))
@@ -226,7 +242,7 @@ class Event(Resource):
                         conn.commit()
                         return( jsonify({'message': 'Event {} successfully updated!'.format(event_id)}))
                     else:
-                        message = "Unable to update event '{}'!".format(data['event_name'])
+                        message = "Unable to update event '{}'!".format(data['title'])
 
                 elif(data['Operation'] == 'Delete'):
                     cur.execute("Delete From events Where id='{}'".format(data['event_id']))
@@ -250,25 +266,9 @@ class Organizer(Resource):
             if(cur.rowcount > 0):
                 data['message'] = "Found!"
                 data['organizer'] = {'name': res[0], 'display_name':res[1], 'about': res[2]}
+                # If it there is an image
                 if(res[3]):
-                    file_response = send_file(
-                        io.BytesIO(res[3]),
-                        mimetype='image/jpeg',
-                        as_attachment=True,
-                        attachment_filename='image.jpg'
-                    )
-                    # Create a JSON response
-                    json_response = jsonify(data)
-                    # Create a file response with dynamic MIME type based on the file extension
-                    headers = {
-                        'Content-Disposition': 'attachment; filename=image',
-                    }
-                    file_response = make_response(image_data)
-                    file_response.headers.set('Content-Type', f'image/{res[4]}')
-                    file_response.headers.set('Content-Disposition', 'attachment', filename='image' + res[4])
-                    # Create a combined response
-                    combined_data = make_response((json_response, file_response))
-                    return combined_data
+                    return createCombinedEventDataAndImage(data, res[3], res[4])
             else:
                 data['message'] = 'Invalid request!'
         return(jsonify(data)) 
