@@ -192,7 +192,20 @@ class Event(Resource):
                     5. description : event description (Max 100 chars)
                     6. location : where the event is happening, usually a room in a department
         """
-        data = request.get_json()     # status code
+        try:
+            data = request.get_json()     # status code
+        except:
+            data = {}
+            data['Operation'] = request.form.get('Operation')
+            data['event_id'] = request.form.get('event_id')
+            data['id'] = request.form.get('id')
+            data['datetime'] = request.form.get('datetime')
+            data['title'] = request.form.get('title')
+            data['description'] = request.form.get('description')
+            data['location'] = request.form.get('location')
+            data['image'] = request.form.get('image')
+            data['image_extension'] = request.form.get('image_extension')
+        # print(data)
         message = "received"
         if('Operation' in data.keys()):
             # to be used after login code is complete
@@ -242,7 +255,7 @@ class Event(Resource):
                     #     image_data = image_file.read()
                     #     image_filename = image_file.filename
                     #     image_extension = os.path.splitext(image_filename)[1]
-                    if(data['image']):
+                    if('image' in data.keys()):
                         image_data = data['image']
                         image_extension = data['image_extension']
                     print(event_id, data['id'], data['datetime'], data['title'], data['description'], data['location'], image_data, image_extension)
@@ -274,7 +287,7 @@ class Event(Resource):
                     #     image_filename = image_file.filename
                     #     image_extension = os.path.splitext(image_filename)[1]
                     #     image_file.save('./test_image.png')
-                    if(data['image']):
+                    if('image' in data.keys()):
                         image_data = data['image']
                         image_extension = data['image_extension']
                     # if all checks successful, inserting event
