@@ -328,7 +328,13 @@ class Organizer(Resource):
                 data['organizer'] = {'name': res[0], 'display_name':res[1], 'about': res[2]}
                 # If it there is an image
                 if(res[3]):
-                    return createCombinedEventDataAndImage(data, res[3], res[4])
+                    # return createCombinedEventDataAndImage(data, res[3], res[4])
+                    image = ""
+                    image_extension = ""
+                    if(i[6]): 
+                        image = bytes(i[4]).decode('utf-8')
+                        image_extension = i[3]
+                        data['profile'] = {'image': image, 'image_extension': image_extension}
             else:
                 data['message'] = 'Invalid request!'
         return(jsonify(data)) 
