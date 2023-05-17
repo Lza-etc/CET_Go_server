@@ -116,7 +116,7 @@ class Graph(Resource):
                 # for i in list(res):
                 #     print(i.data())
                 # print(list(res.data()))
-                query = "select id, val, fx, fy from {} where id=".format(data['dept'])
+                query = "select id, val, fx, fy, z from {} where id=".format(data['dept'])
                 dc = res.data()[0]
                 for i in dc['path']:
                     if( not isinstance(i, dict)):
@@ -128,7 +128,7 @@ class Graph(Resource):
                     q = cur.fetchone()
                     if(q == None):
                         return jsonify({'Error': "Unable to find room", 'message': 'Unable to find {} in {}.'.format(i['id'], data['dept'])})
-                    result.append({'id': i['id'], 'desc': q[1].strip(), 'fx': str(q[2]), 'fy': str(q[3])})
+                    result.append({'id': i['id'], 'desc': q[1].strip(), 'fx': str(q[2]), 'fy': str(q[3]), 'z': q[4]})
                     # print(result)
                 data['path'] = result
         graphDB_Driver.close()
