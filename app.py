@@ -175,7 +175,7 @@ class Event(Resource):
             # data['Error'] = 'Invalid request!'
         return(jsonify(data)) 
 
-    @login_required
+    # @login_required
     def post(self):
         """ 
             Handles event functions. 
@@ -213,13 +213,13 @@ class Event(Resource):
             #     return( jsonify({'Error': 'Unauthorized user!', 'message': 'User id in request does not match user id of logged in user'}))
             with conn.cursor() as cur:
                 # verify valid user
-                cur.execute("select id from organizers where id='{}'".format(current_user.id))
+                cur.execute("select id from organizers where id='2'")
                 if(cur.fetchone() == None):
                     return jsonify({'Error': 'Invalid user ID', 'message': 'User ID not found!'}), 201
 
                 if(data['Operation'] == 'List'):
                     # List events
-                    cur.execute("select * from events where id='{}'".format(current_user.id))
+                    cur.execute("select * from events where id='{}'.format(current_user.id)")
                     res = cur.fetchall()
                     result = {}
                     data['count'] = len(res)
@@ -391,10 +391,10 @@ class Login(Resource):
         username = data['username']
         password = data['password']
         user = User.get_by_username(username)
-        print(username, password, user, user.password)
+        # print(username, password, user, user.password)
         if user is not None and user.password == password:
             login_user(user)
-            return {'message': 'Login successful.'}
+            return {'message': 'Login successful.','id' : user.id}
         else:
             return {'message': 'Invalid username or password.'}
 
